@@ -15,6 +15,7 @@ int main(int argc, char *argv[])
     {
       bc_tool.printSecretKeyHex();
       bc_tool.printPublicKey();    
+      bc_tool.printBitcoinAddress();
     } 
     else 
     {

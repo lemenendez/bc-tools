@@ -7,10 +7,12 @@ using namespace bc;
 class my_bc_tools 
 {
   std::string my_secret_key;
-  ec_secret decoded_secret_ec;
-  std::array<uint8_t, ec_secret_size> decoded_secret; // not needed, just an example
-  
-  wallet::ec_public public_key;
+  std::string bitcoin_address;
+
+  ec_secret decoded_secret_ec;  
+
+  wallet::ec_private secret_key;  
+  wallet::ec_public public_key;  
 
   bool decodeSecret(std::string secret);
 
@@ -19,7 +21,8 @@ class my_bc_tools
     ec_secret getDecodedSecretKey();
     bool setSecretKey(std::string secret);
     void printSecretKeyHex();
-    void printPublicKey();
+    void printPublicKey();    
+    void printBitcoinAddress();
 };
 
 void my_bc_tools::printSecretKeyHex() 
@@ -45,11 +48,27 @@ bool my_bc_tools::setSecretKey(std::string secret)
   bool decoded = decodeSecret(secret);
   if(decoded) 
   {
-    my_secret_key = secret;
-    decoded_secret = decoded_secret_ec;
-    public_key = wallet::ec_public(decoded_secret_ec); // generate public key
+    my_secret_key = secret;    
+    secret_key = wallet::ec_private(decoded_secret_ec, wallet::ec_private::mainnet_p2kh);  // generate private key
+    public_key = wallet::ec_public(secret_key); // generate public key
+    bc::data_chunk public_key_data;
+    public_key.to_data(public_key_data);
+
+    const auto hash = bc::bitcoin_short_hash(public_key_data);  // hash
+    bc::data_chunk unencoded_address;
+    unencoded_address.reserve(25);
+    unencoded_address.push_back(0);
+
+     bc::extend_data(unencoded_address, hash); 
+     bc::append_checksum(unencoded_address);
+     bitcoin_address = bc::encode_base58(unencoded_address);
+
   }
   return decoded;
 }
 
-bool my_bc_tools::decodeSecret(std::string secret) { return decode_base16(decoded_secret, secret ); }
+void my_bc_tools::printBitcoinAddress() {
+  std::cout << bitcoin_address << std::endl; 
+}
+
+bool my_bc_tools::decodeSecret(std::string secret) { return decode_base16(decoded_secret_ec, secret ); }
